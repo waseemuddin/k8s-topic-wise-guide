@@ -24,7 +24,8 @@ Imagine you are managing a Kubernetes cluster for:
 - Name conflicts can happen.
 - Hard to manage access.
 - Difficult to apply resource limits.
-With namespaces:
+
+### With namespaces:
 - Each team/environment is isolated.
 - Same resource names can exist in different namespaces.
 - Resource limits can be applied per namespace.
