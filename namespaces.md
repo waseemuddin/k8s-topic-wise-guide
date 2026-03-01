@@ -12,6 +12,26 @@ It helps in:
 
 ---
 
+## Why Do We Need Namespaces?
+
+Imagine you are managing a Kubernetes cluster for:
+
+- Development team
+- Testing team
+- Production environment
+- Without namespaces:
+- All Pods, Services, Deployments will exist in one place.
+- Name conflicts can happen.
+- Hard to manage access.
+- Difficult to apply resource limits.
+With namespaces:
+- Each team/environment is isolated.
+- Same resource names can exist in different namespaces.
+- Resource limits can be applied per namespace.
+- Access control can be configured per namespace.
+
+--- 
+
 ## Default Namespaces
 
 | Namespace | Purpose |
