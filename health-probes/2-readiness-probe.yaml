@@ -1,0 +1,152 @@
+# ============================================================
+# 🟡 READINESS PROBE - "Are you READY to serve traffic?"
+# If NOT ready → Kubernetes stops sending users to it
+#              → Container is NOT restarted, just excluded
+# ============================================================
+
+# -----------------------------------------------------------
+# EXAMPLE 1: HTTP GET Readiness Probe
+# Use case: App needs time to load config/DB before serving users
+# -----------------------------------------------------------
+apiVersion: v1
+kind: Pod
+metadata:
+  name: readiness-http
+  labels:
+    probe-type: readiness
+    method: http
+spec:
+  containers:
+  - name: web-app
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+
+    readinessProbe:
+      httpGet:
+        path: /           # endpoint that returns 200 when app is ready
+        port: 80
+      initialDelaySeconds: 10   # give app 10s to start up first
+      periodSeconds: 5          # check every 5 seconds
+      timeoutSeconds: 2         # timeout after 2s
+      failureThreshold: 3       # mark as NOT ready after 3 failures
+      successThreshold: 1       # needs 1 success to be marked ready
+
+---
+# -----------------------------------------------------------
+# EXAMPLE 2: EXEC Command Readiness Probe
+# Use case: App signals readiness by creating a file
+# -----------------------------------------------------------
+apiVersion: v1
+kind: Pod
+metadata:
+  name: readiness-exec
+  labels:
+    probe-type: readiness
+    method: exec
+spec:
+  containers:
+  - name: app
+    image: busybox:latest
+    # Simulates: app takes 15s to initialize, then becomes ready
+    command:
+    - /bin/sh
+    - -c
+    - "sleep 15 && touch /tmp/app-ready && sleep 600"
+
+    readinessProbe:
+      exec:
+        command:
+        - cat
+        - /tmp/app-ready    # file exists = ready to serve traffic
+      initialDelaySeconds: 5
+      periodSeconds: 5
+      failureThreshold: 5   # allow more failures since startup takes time
+
+---
+# -----------------------------------------------------------
+# EXAMPLE 3: TCP Socket Readiness Probe
+# Use case: Redis / MySQL - ready when port is accepting connections
+# -----------------------------------------------------------
+apiVersion: v1
+kind: Pod
+metadata:
+  name: readiness-tcp
+  labels:
+    probe-type: readiness
+    method: tcp
+spec:
+  containers:
+  - name: redis-like
+    image: redis:latest
+    ports:
+    - containerPort: 6379
+
+    readinessProbe:
+      tcpSocket:
+        port: 6379        # Redis default port
+      initialDelaySeconds: 5
+      periodSeconds: 5
+
+---
+# -----------------------------------------------------------
+# EXAMPLE 4: Readiness + Service (realistic setup)
+# Traffic is ONLY sent to pods that pass the readiness probe
+# -----------------------------------------------------------
+apiVersion: v1
+kind: Pod
+metadata:
+  name: readiness-with-service
+  labels:
+    app: my-web            # must match Service selector!
+    probe-type: readiness
+spec:
+  containers:
+  - name: web
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+
+    readinessProbe:
+      httpGet:
+        path: /
+        port: 80
+      initialDelaySeconds: 5
+      periodSeconds: 5
+
+---
+# Service will ONLY route to pods that pass the readiness probe
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-web-service
+spec:
+  selector:
+    app: my-web            # targets the pod above
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+
+# ============================================================
+# 🧪 HOW TO TEST IN YOUR LAB:
+#
+# 1. Apply:   kubectl apply -f 2-readiness-probe.yaml
+#
+# 2. Watch pod status (notice READY column changes):
+#             kubectl get pods -w
+#
+# 3. Check endpoints (shows which pods receive traffic):
+#             kubectl get endpoints my-web-service
+#             → Empty = pod not ready (no traffic sent!)
+#             → Has IP = pod is ready (traffic flows!)
+#
+# 4. Describe: kubectl describe pod readiness-exec
+#              Look at "Conditions" section → Ready: True/False
+#
+# 5. Difference from Liveness:
+#             RESTARTS stay at 0 → pod is NOT restarted
+#             Only READY status changes!
+#
+# 6. Clean up: kubectl delete -f 2-readiness-probe.yaml
+# ============================================================
