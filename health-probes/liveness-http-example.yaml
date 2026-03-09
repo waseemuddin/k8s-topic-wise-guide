@@ -1,0 +1,33 @@
+# ============================================================
+# 🟢 LIVENESS PROBE - "Are you still alive?"
+# If the app is broken/stuck → Kubernetes RESTARTS it
+# ============================================================
+
+# -----------------------------------------------------------
+# EXAMPLE 1: HTTP GET Liveness Probe (most common)
+# Use case: Web app exposes a /healthz endpoint
+# -----------------------------------------------------------
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: liveness-http
+  labels:
+    probe-type: liveness
+    method: http
+spec:
+  containers:
+  - name: web-app
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+
+    livenessProbe:
+      httpGet:
+        path: /          # URL path to check
+        port: 80         # port to hit
+      initialDelaySeconds: 5   # wait 5s after container starts before 1st check
+      periodSeconds: 10        # check every 10 seconds
+      timeoutSeconds: 3        # wait max 3s for response
+      failureThreshold: 3      # restart after 3 consecutive failures
+      successThreshold: 1      # 1 success = considered alive

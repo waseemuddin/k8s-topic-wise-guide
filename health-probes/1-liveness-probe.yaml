@@ -1,0 +1,102 @@
+# ============================================================
+# 🟢 LIVENESS PROBE - "Are you still alive?"
+# If the app is broken/stuck → Kubernetes RESTARTS it
+# ============================================================
+
+# -----------------------------------------------------------
+# EXAMPLE 1: HTTP GET Liveness Probe (most common)
+# Use case: Web app exposes a /healthz endpoint
+# -----------------------------------------------------------
+apiVersion: v1
+kind: Pod
+metadata:
+  name: liveness-http
+  labels:
+    probe-type: liveness
+    method: http
+spec:
+  containers:
+  - name: web-app
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+
+    livenessProbe:
+      httpGet:
+        path: /          # URL path to check
+        port: 80         # port to hit
+      initialDelaySeconds: 5   # wait 5s after container starts before 1st check
+      periodSeconds: 10        # check every 10 seconds
+      timeoutSeconds: 3        # wait max 3s for response
+      failureThreshold: 3      # restart after 3 consecutive failures
+      successThreshold: 1      # 1 success = considered alive
+
+---
+# -----------------------------------------------------------
+# EXAMPLE 2: EXEC Command Liveness Probe
+# Use case: App writes a file when healthy, deletes it when broken
+# -----------------------------------------------------------
+apiVersion: v1
+kind: Pod
+metadata:
+  name: liveness-exec
+  labels:
+    probe-type: liveness
+    method: exec
+spec:
+  containers:
+  - name: healthy-app
+    image: busybox:latest
+    # This command creates /tmp/healthy, waits 30s, then deletes it
+    # After 30s, the liveness probe will FAIL and restart the container
+    command:
+    - /bin/sh
+    - -c
+    - "touch /tmp/healthy; sleep 30; rm -f /tmp/healthy; sleep 600"
+
+    livenessProbe:
+      exec:
+        command:
+        - cat
+        - /tmp/healthy    # if file exists = healthy, if not = restart!
+      initialDelaySeconds: 5
+      periodSeconds: 5
+      failureThreshold: 3
+
+---
+# -----------------------------------------------------------
+# EXAMPLE 3: TCP Socket Liveness Probe
+# Use case: Database or any TCP service - just check if port is open
+# -----------------------------------------------------------
+apiVersion: v1
+kind: Pod
+metadata:
+  name: liveness-tcp
+  labels:
+    probe-type: liveness
+    method: tcp
+spec:
+  containers:
+  - name: tcp-app
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+
+    livenessProbe:
+      tcpSocket:
+        port: 80          # checks if port 80 is accepting connections
+      initialDelaySeconds: 10
+      periodSeconds: 15
+      failureThreshold: 3
+
+# ============================================================
+# 🧪 HOW TO TEST IN YOUR LAB:
+#
+# 1. Apply:   kubectl apply -f 1-liveness-probe.yaml
+# 2. Watch:   kubectl get pods -w
+# 3. Describe: kubectl describe pod liveness-exec
+#              Look at "Events" section to see restarts!
+# 4. Logs:    kubectl get pod liveness-exec
+#              Check RESTARTS column - it should increase!
+# 5. Clean up: kubectl delete -f 1-liveness-probe.yaml
+# ============================================================
