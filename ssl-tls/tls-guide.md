@@ -16,17 +16,17 @@ openssl req -new \
 
 ## Step 3:
 
-## Verify the CSR was created
+### Verify the CSR was created
 ```
 openssl req -text -noout -in my-app.csr | head -20
 ```
 
-## Encode your CSR to base64
+### Encode your CSR to base64
 ```
 CSR_BASE64=$(cat my-app.csr | base64 | tr -d '\n')
 ```
 
-## Create the Kubernetes CSR object
+### Create the Kubernetes CSR object
 ```
 cat <<EOF | kubectl apply -f -
 apiVersion: certificates.k8s.io/v1
@@ -41,7 +41,7 @@ spec:
   - client auth
 EOF
 ```
-## Check the CSR was submitted
+### Check the CSR was submitted
 ```
 kubectl get csr my-app-csr
 ```
@@ -49,71 +49,71 @@ kubectl get csr my-app-csr
 ## Step 4:
 
 
-## View pending CSR (status will be 'Pending')
+### View pending CSR (status will be 'Pending')
 ```
 kubectl get csr
 ```
 
-## NAME          AGE   SIGNERNAME                            REQUESTOR   CONDITION
-## my-app-csr    10s   kubernetes.io/kube-apiserver-client   admin       Pending
+#### NAME          AGE   SIGNERNAME                            REQUESTOR   CONDITION
+#### my-app-csr    10s   kubernetes.io/kube-apiserver-client   admin       Pending
 
 ## Admin approves the CSR
 
 kubectl certificate approve my-app-csr
 
-## Verify it's approved
+### Verify it's approved
 ```
 kubectl get csr my-app-csr
 ```
 
-## CONDITION should now show: Approved,Issued
+### CONDITION should now show: Approved,Issued
 
 ## Step 5:
 
-# Extract the signed certificate
+### Extract the signed certificate
 ```
 kubectl get csr my-app-csr \
   -o jsonpath='{.status.certificate}' | \
   base64 --decode > my-app.crt
 ```
 
-# Verify the certificate details
+### Verify the certificate details
 ```
 openssl x509 -in my-app.crt -text -noout
 ```
 
-# You should see:
-# Subject: CN=my-app, O=my-org
-# Issuer: CN=kubernetes (your cluster CA)
-# Validity: Not After : <24 hours from now>
+### You should see:
+### Subject: CN=my-app, O=my-org
+### Issuer: CN=kubernetes (your cluster CA)
+### Validity: Not After : <24 hours from now>
 
 ## Step 6:
 
-## Create a TLS secret with cert + private key
+### Create a TLS secret with cert + private key
 ```
 kubectl create secret tls my-app-tls \
   --cert=my-app.crt \
   --key=my-app.key
 ```
 
-## Verify the secret
+### Verify the secret
 
 ```
 kubectl get secret my-app-tls
 ```
 
-## View the secret structure
+### View the secret structure
 ```
 kubectl describe secret my-app-tls
 ```
-## Type:  kubernetes.io/tls
-## Data:
-##   tls.crt: 1234 bytes
-##   tls.key: 1679 bytes
+### Type:  kubernetes.io/tls
+### Data:
+###   tls.crt: 1234 bytes
+###   tls.key: 1679 bytes
 
 # Implementation Example:
 
-## Setup on Minikube or Kubedm Cluster
+### Setup on Minikube or Kubedm Cluster
 
 ### Step 01: 
 
