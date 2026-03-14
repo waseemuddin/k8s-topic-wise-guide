@@ -1,1 +1,4 @@
-**/RBAC/*
+/RBAC/user.crt
+/RBAC/user.csr
+/RBAC/user.key
+/RBAC/user.srl
